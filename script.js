@@ -19,133 +19,134 @@
     const userInfo = document.getElementById('user-info');
     const spinner = form.querySelector('.spinner-border');
     const submitButton = form.querySelector('button[type="submit"]');
+    const statusElement = document.getElementById('github-status');
+    
+    // Function to update status
+    function updateStatus(message) {
+        statusElement.textContent = message;
+    }
+    
+    // Function to calculate account age in years
+    function calculateAccountAge(createdAt) {
+        const created = new Date(createdAt);
+        const now = new Date();
+        const diffMs = now - created;
+        const diffYears = Math.floor(diffMs / (1000 * 60 * 60 * 24 * 365.25));
+        return diffYears;
+    }
+    
+    // Load cached user data on page load
+    window.addEventListener('DOMContentLoaded', () => {
+        const cachedData = localStorage.getItem('github-user-${seed}');
+        if (cachedData) {
+            try {
+                const userData = JSON.parse(cachedData);
+                if (userData && userData.login) {
+                    usernameInput.value = userData.login;
+                    displayUserInfo(userData);
+                }
+            } catch (e) {
+                console.error('Error loading cached data:', e);
+            }
+        }
+    });
+    
+    // Function to display user information
+    function displayUserInfo(data) {
+        document.getElementById('user-avatar').src = data.avatar_url;
+        document.getElementById('user-name').textContent = data.name || data.login;
+        document.getElementById('user-login').textContent = '@' + data.login;
+        document.getElementById('user-bio').textContent = data.bio || '';
+        document.getElementById('user-location').textContent = data.location || '-';
+        document.getElementById('user-company').textContent = data.company || '-';
+        document.getElementById('user-repos').textContent = data.public_repos;
+        document.getElementById('user-followers').textContent = data.followers;
+        document.getElementById('user-following').textContent = data.following;
+        
+        // Format and display creation date
+        const createdDate = new Date(data.created_at);
+        const formattedDate = createdDate.toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+        });
+        document.getElementById('user-created').textContent = formattedDate;
+        
+        // Calculate and display account age
+        const accountAge = calculateAccountAge(data.created_at);
+        document.getElementById('github-account-age').textContent = `${accountAge} years`;
+        
+        userInfo.style.display = 'block';
+    }
     
     // Form submission handler
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
         
         const username = usernameInput.value.trim();
+        const token = tokenInput.value.trim();
+        
         if (!username) {
-            showError('Please enter a GitHub username');
+            errorMessage.textContent = 'Please enter a username';
+            errorMessage.style.display = 'block';
             return;
         }
         
+        // Update status - lookup starting
+        updateStatus(`Starting lookup for user ${username}`);
+        
+        // Hide previous results/errors
+        errorMessage.style.display = 'none';
+        userInfo.style.display = 'none';
+        
         // Show loading state
-        setLoadingState(true);
-        hideError();
-        hideUserInfo();
+        spinner.style.display = 'inline-block';
+        submitButton.disabled = true;
         
         try {
-            await fetchGitHubUser(username);
-        } catch (error) {
-            showError(error.message);
-        } finally {
-            setLoadingState(false);
-        }
-    });
-    
-    // Fetch GitHub user data
-    async function fetchGitHubUser(username) {
-        const token = tokenInput.value.trim() || tokenFromUrl;
-        const apiUrl = `https://api.github.com/users/${encodeURIComponent(username)}`;
-        
-        const headers = {
-            'Accept': 'application/vnd.github.v3+json'
-        };
-        
-        // Add authorization header if token is provided
-        if (token) {
-            headers['Authorization'] = `token ${token}`;
-        }
-        
-        try {
-            const response = await fetch(apiUrl, {
-                method: 'GET',
+            const headers = {
+                'Accept': 'application/vnd.github.v3+json'
+            };
+            
+            if (token) {
+                headers['Authorization'] = `token ${token}`;
+            }
+            
+            const response = await fetch(`https://api.github.com/users/${username}`, {
                 headers: headers
             });
             
             if (!response.ok) {
-                if (response.status === 404) {
-                    throw new Error('User not found. Please check the username.');
+                let errorMsg = 'User not found';
+                if (response.status === 403) {
+                    errorMsg = 'API rate limit exceeded. Please provide a GitHub token.';
                 } else if (response.status === 401) {
-                    throw new Error('Invalid token. Please check your GitHub token.');
-                } else if (response.status === 403) {
-                    throw new Error('API rate limit exceeded. Please provide a valid token or try again later.');
-                } else {
-                    throw new Error(`GitHub API error: ${response.status} ${response.statusText}`);
+                    errorMsg = 'Invalid GitHub token';
                 }
+                throw new Error(errorMsg);
             }
             
-            const userData = await response.json();
-            displayUserInfo(userData);
+            const data = await response.json();
+            
+            // Display user information
+            displayUserInfo(data);
+            
+            // Cache the successful lookup
+            localStorage.setItem('github-user-${seed}', JSON.stringify(data));
+            
+            // Update status - lookup succeeded
+            updateStatus(`Successfully retrieved information for user ${username}`);
             
         } catch (error) {
-            if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
-                throw new Error('Network error. Please check your internet connection.');
-            }
-            throw error;
-        }
-    }
-    
-    // Display user information
-    function displayUserInfo(userData) {
-        // Format the created_at date to YYYY-MM-DD in UTC
-        const createdDate = new Date(userData.created_at);
-        const formattedDate = formatDateToUTC(createdDate);
-        
-        // Update the UI with user data
-        document.getElementById('github-created-at').textContent = formattedDate;
-        document.getElementById('user-avatar').src = userData.avatar_url || '';
-        document.getElementById('user-name').textContent = userData.name || userData.login;
-        document.getElementById('user-login').textContent = '@' + userData.login;
-        document.getElementById('user-repos').textContent = userData.public_repos || '0';
-        document.getElementById('user-followers').textContent = userData.followers || '0';
-        document.getElementById('user-bio').textContent = userData.bio || 'No bio available';
-        
-        // Show the user info section
-        userInfo.classList.remove('d-none');
-    }
-    
-    // Format date to YYYY-MM-DD in UTC
-    function formatDateToUTC(date) {
-        const year = date.getUTCFullYear();
-        const month = String(date.getUTCMonth() + 1).padStart(2, '0');
-        const day = String(date.getUTCDate()).padStart(2, '0');
-        return `${year}-${month}-${day} UTC`;
-    }
-    
-    // Show error message
-    function showError(message) {
-        errorMessage.textContent = message;
-        errorMessage.classList.remove('d-none');
-    }
-    
-    // Hide error message
-    function hideError() {
-        errorMessage.classList.add('d-none');
-        errorMessage.textContent = '';
-    }
-    
-    // Hide user info section
-    function hideUserInfo() {
-        userInfo.classList.add('d-none');
-    }
-    
-    // Set loading state
-    function setLoadingState(isLoading) {
-        if (isLoading) {
-            spinner.classList.remove('d-none');
-            submitButton.disabled = true;
-        } else {
-            spinner.classList.add('d-none');
+            errorMessage.textContent = error.message;
+            errorMessage.style.display = 'block';
+            
+            // Update status - lookup failed
+            updateStatus(`Failed to retrieve information for user ${username}: ${error.message}`);
+        } finally {
+            // Hide loading state
+            spinner.style.display = 'none';
             submitButton.disabled = false;
         }
-    }
-    
-    // Auto-fetch if username is provided in URL
-    const usernameFromUrl = urlParams.get('username');
-    if (usernameFromUrl) {
-        usernameInput.value = usernameFromUrl;
-        form.dispatchEvent(new Event('submit'));
-    }
+    });
 })();

@@ -16,6 +16,7 @@
                         <h3 class="mb-0"><i class="bi bi-github"></i> GitHub User Info</h3>
                     </div>
                     <div class="card-body">
+                        <div id="github-status" aria-live="polite" class="visually-hidden"></div>
                         <form id="github-user-${seed}">
                             <div class="mb-3">
                                 <label for="username" class="form-label">GitHub Username</label>
@@ -23,63 +24,75 @@
                                     type="text" 
                                     class="form-control" 
                                     id="username" 
-                                    placeholder="Enter GitHub username"
+                                    name="username" 
+                                    placeholder="Enter GitHub username" 
                                     required
                                 >
                             </div>
                             <div class="mb-3">
                                 <label for="token" class="form-label">GitHub Token (Optional)</label>
                                 <input 
-                                    type="password" 
+                                    type="text" 
                                     class="form-control" 
                                     id="token" 
-                                    placeholder="Personal access token for higher rate limits"
+                                    name="token" 
+                                    placeholder="ghp_xxxxxxxxxxxx"
                                 >
-                                <div class="form-text">Optional: Add a token to avoid rate limits</div>
+                                <small class="form-text text-muted">Provide a token for higher rate limits</small>
                             </div>
                             <button type="submit" class="btn btn-primary w-100">
-                                <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
-                                Fetch User Info
+                                <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true" style="display: none;"></span>
+                                Get User Info
                             </button>
                         </form>
                         
-                        <div id="error-message" class="alert alert-danger mt-3 d-none" role="alert"></div>
+                        <div id="error-message" class="alert alert-danger mt-3" style="display: none;"></div>
                         
-                        <div id="user-info" class="mt-4 d-none">
-                            <div class="card">
-                                <div class="card-body">
-                                    <div class="d-flex align-items-center mb-3">
-                                        <img id="user-avatar" src="" alt="User Avatar" class="rounded-circle me-3" width="60" height="60">
-                                        <div>
-                                            <h5 class="mb-0" id="user-name"></h5>
-                                            <small class="text-muted" id="user-login"></small>
-                                        </div>
+                        <div id="user-info" class="mt-4" style="display: none;">
+                            <div class="text-center mb-3">
+                                <img id="user-avatar" src="" alt="User Avatar" class="rounded-circle" width="120" height="120">
+                            </div>
+                            <h4 id="user-name" class="text-center"></h4>
+                            <p id="user-login" class="text-center text-muted"></p>
+                            <p id="user-bio" class="text-center"></p>
+                            
+                            <div class="row mt-3">
+                                <div class="col-6">
+                                    <small class="text-muted">Location</small>
+                                    <p id="user-location" class="mb-2">-</p>
+                                </div>
+                                <div class="col-6">
+                                    <small class="text-muted">Company</small>
+                                    <p id="user-company" class="mb-2">-</p>
+                                </div>
+                            </div>
+                            
+                            <div class="row mt-2">
+                                <div class="col-12">
+                                    <small class="text-muted">Account Created</small>
+                                    <p id="user-created" class="mb-2">-</p>
+                                    <small class="text-muted">Account Age</small>
+                                    <p id="github-account-age" class="mb-2">0 years</p>
+                                </div>
+                            </div>
+                            
+                            <div class="row mt-3 text-center">
+                                <div class="col-4">
+                                    <div class="stat-box">
+                                        <div class="stat-value" id="user-repos">0</div>
+                                        <div class="stat-label">Repos</div>
                                     </div>
-                                    <div class="row">
-                                        <div class="col-12">
-                                            <div class="info-item">
-                                                <strong>Account Created:</strong>
-                                                <span id="github-created-at" class="text-primary"></span>
-                                            </div>
-                                        </div>
-                                        <div class="col-6">
-                                            <div class="info-item">
-                                                <strong>Public Repos:</strong>
-                                                <span id="user-repos"></span>
-                                            </div>
-                                        </div>
-                                        <div class="col-6">
-                                            <div class="info-item">
-                                                <strong>Followers:</strong>
-                                                <span id="user-followers"></span>
-                                            </div>
-                                        </div>
-                                        <div class="col-12 mt-2">
-                                            <div class="info-item">
-                                                <strong>Bio:</strong>
-                                                <span id="user-bio" class="text-muted"></span>
-                                            </div>
-                                        </div>
+                                </div>
+                                <div class="col-4">
+                                    <div class="stat-box">
+                                        <div class="stat-value" id="user-followers">0</div>
+                                        <div class="stat-label">Followers</div>
+                                    </div>
+                                </div>
+                                <div class="col-4">
+                                    <div class="stat-box">
+                                        <div class="stat-value" id="user-following">0</div>
+                                        <div class="stat-label">Following</div>
                                     </div>
                                 </div>
                             </div>
@@ -90,7 +103,6 @@
         </div>
     </div>
     
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="script.js"></script>
 </body>
